@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema Corporativo — RVC</title>
+  <style>
+    :root {
+      --rvc: #C8102E;
+      --rvc-dark: #a50d25;
+      --bg: #f0eeea;
+      --sidebar-w: 260px;
+      --header-h: 56px;
+      --border: #e0ddd8;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+
+    /* ── App shell ───────────────────────────────────────────── */
+    .app {
+      display: flex; flex-direction: column;
+      height: 100vh; overflow: hidden;
+    }
+
+    /* ── Top bar ─────────────────────────────────────────────── */
+    .top-bar {
+      height: var(--header-h);
+      background: var(--rvc); color: white;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0; z-index: 200;
+      box-shadow: 0 2px 8px rgba(0,0,0,.22);
+      padding-right: 20px;
+    }
+    .top-left  { display: flex; align-items: center; height: 100%; }
+    .top-right { display: flex; align-items: center; gap: 14px; }
+
+    .top-logo { height: 36px; width: auto; object-fit: contain; margin-right: 12px; }
+    .top-logo-text {
+      font-size: 22px; font-weight: 900; letter-spacing: 3px;
+      margin-right: 12px;
+    }
+    .top-title { font-size: 14px; opacity: .85; white-space: nowrap; }
+    .top-home {
+      display: flex; align-items: center; background: none; border: none;
+      padding: 0; cursor: pointer; height: 100%;
+    }
+    .top-home:hover { opacity: .85; }
+
+    .conexion { display: flex; align-items: center; gap: 6px; font-size: 12px; opacity: .85; }
+    .dot      { width: 8px; height: 8px; border-radius: 50%; background: #4caf50; flex-shrink: 0; }
+    .dot.off  { background: #ff5252; }
+    .usr-nombre { font-size: 13px; opacity: .9; }
+    .avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: rgba(255,255,255,.22);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 12px;
+      border: 1.5px solid rgba(255,255,255,.35); flex-shrink: 0;
+    }
+    .btn-salir {
+      padding: 5px 13px;
+      background: rgba(255,255,255,.15); color: white;
+      border: 1px solid rgba(255,255,255,.3);
+      border-radius: 7px; font-size: 13px; cursor: pointer;
+      transition: background .15s;
+    }
+    .btn-salir:hover { background: rgba(255,255,255,.28); }
+
+    /* ── Account button + dropdown ───────────────────────────── */
+    .top-right { position: relative; }
+    .account-btn {
+      display: flex; align-items: center; gap: 8px;
+      cursor: pointer; padding: 4px 6px; border-radius: 8px;
+      transition: background .15s;
+    }
+    .account-btn:hover { background: rgba(255,255,255,.12); }
+
+    .account-dropdown {
+      position: absolute; top: calc(var(--header-h) - 12px); right: 0;
+      width: 240px;
+      background: white; border: 0.5px solid var(--border);
+      border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,.12);
+      z-index: 400;
+      opacity: 0; transform: translateY(-8px); pointer-events: none;
+      transition: opacity .18s ease, transform .18s ease;
+    }
+    .account-dropdown.open { opacity: 1; transform: translateY(0); pointer-events: auto; }
+
+    .acct-head {
+      padding: 18px 16px 14px;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      border-bottom: 1px solid #f0eee8;
+    }
+    .acct-avatar-big {
+      width: 52px; height: 52px; border-radius: 50%;
+      background: var(--rvc); color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; font-weight: 700; flex-shrink: 0;
+      margin-bottom: 4px;
+    }
+    .acct-nombre { font-size: 14px; font-weight: 600; color: #1a1a1a; text-align: center; line-height: 1.3; }
+    .acct-email  { font-size: 12px; color: #999; text-align: center; }
+
+    .acct-info { padding: 10px 14px; border-bottom: 1px solid #f0eee8; }
+    .acct-row  { display: flex; align-items: center; gap: 8px;
+                 padding: 5px 0; font-size: 13px; color: #555; }
+
+    .acct-foot { padding: 10px 14px; }
+    .btn-signout {
+      width: 100%; padding: 9px; text-align: center;
+      background: #fce8e6; color: #c5221f; border: none;
+      border-radius: 8px; font-size: 13px; font-weight: 500;
+      cursor: pointer; transition: background .15s;
+    }
+    .btn-signout:hover { background: #f5c6c3; }
+
+    /* ── Body wrap ───────────────────────────────────────────── */
+    .body-wrap { display: flex; flex: 1; overflow: hidden; }
+
+    /* ── Gear (módulos + admin) ─────────────────────────────── */
+    .gear-btn {
+      display: flex; align-items: center; justify-content: center;
+      width: 32px; height: 32px; border-radius: 8px;
+      cursor: pointer; font-size: 16px; transition: background .15s;
+    }
+    .gear-btn:hover { background: rgba(255,255,255,.12); }
+
+    .gear-dropdown {
+      position: absolute; top: calc(var(--header-h) - 12px); right: 0;
+      width: var(--sidebar-w); max-width: calc(100vw - 24px); max-height: 74vh;
+      background: white; border: 0.5px solid var(--border);
+      border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,.12);
+      z-index: 400; display: flex; flex-direction: column;
+      opacity: 0; transform: translateY(-8px); pointer-events: none;
+      transition: opacity .18s ease, transform .18s ease;
+    }
+    .gear-dropdown.open { opacity: 1; transform: translateY(0); pointer-events: auto; }
+
+    .gear-scroll {
+      flex: 1; overflow-y: auto; overflow-x: hidden; min-height: 0;
+      padding: 4px 0;
+    }
+    .gear-scroll::-webkit-scrollbar { width: 3px; }
+    .gear-scroll::-webkit-scrollbar-thumb { background: #e0ddd8; border-radius: 2px; }
+
+    /* Groups */
+    .module-group { padding: 4px 0; }
+
+    .group-header {
+      display: flex; align-items: center;
+      padding: 10px 14px 5px; height: 36px; overflow: hidden;
+      cursor: pointer; border-radius: 4px;
+      transition: background .12s;
+    }
+    .group-header:hover { background: #f8f7f5; }
+
+    .group-label {
+      font-size: 10px; font-weight: 700; letter-spacing: .7px;
+      text-transform: uppercase; color: #bbb; white-space: nowrap;
+      overflow: hidden; flex: 1;
+    }
+
+    .group-chevron {
+      font-size: 9px; color: #ccc; flex-shrink: 0;
+      transition: transform .22s ease;
+      line-height: 1; pointer-events: none;
+    }
+    .module-group.collapsed .group-chevron { transform: rotate(-90deg); }
+
+    .group-items {
+      overflow: hidden;
+      max-height: 600px;
+      transition: max-height .28s ease;
+    }
+    .module-group.collapsed .group-items { max-height: 0; }
+
+    /* Module items */
+    .module-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 14px 9px 13px;  /* 13px = 16px - 3px border */
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      overflow: hidden; white-space: nowrap;
+      transition: background .12s, border-color .12s;
+      user-select: none;
+    }
+    .module-item:hover:not(.locked) { background: #fef2f3; }
+    .module-item.active {
+      background: #fef2f3;
+      border-left-color: var(--rvc);
+    }
+    .module-item.locked { opacity: .4; cursor: not-allowed; }
+
+    .mod-icon {
+      font-size: 18px; width: 24px; text-align: center;
+      flex-shrink: 0; line-height: 1;
+    }
+    .mod-name {
+      font-size: 13px; font-weight: 500; color: #333;
+      flex: 1; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    .mod-arrow { font-size: 15px; color: #ccc; flex-shrink: 0; }
+    .module-item.active .mod-arrow { color: var(--rvc); }
+    .mod-lock { font-size: 11px; flex-shrink: 0; }
+
+    /* Pie del dropdown — admin + versión */
+    .sidebar-footer {
+      border-top: 1px solid #f0eee8;
+      padding: 6px 0; flex-shrink: 0;
+    }
+    .admin-item { text-decoration: none; color: inherit; }
+    .admin-item .mod-name { color: #666; font-weight: 400; }
+    .admin-item:hover { background: #f8f7f5 !important; }
+
+    /* ── Content area ────────────────────────────────────────── */
+    .content-area {
+      flex: 1; height: 100%;
+      position: relative; overflow: hidden;
+      background: var(--bg);
+    }
+
+    /* Welcome screen (home) */
+    .welcome {
+      position: absolute; inset: 0;
+      overflow-y: auto;
+      padding: 3rem 2rem 4rem;
+      z-index: 3;
+    }
+    .welcome-head {
+      display: flex; flex-direction: column;
+      align-items: center; text-align: center;
+      gap: 8px; margin: 0 auto 2.6rem; max-width: 480px;
+    }
+    .welcome-logo {
+      height: 64px; width: auto; object-fit: contain;
+      margin-bottom: 10px; opacity: .9;
+    }
+    .welcome-logo-text {
+      font-size: 40px; font-weight: 900;
+      color: var(--rvc); letter-spacing: 4px;
+      margin-bottom: 10px;
+    }
+    .welcome-title { font-size: 21px; font-weight: 600; color: #333; }
+    .welcome-sub   { font-size: 13.5px; color: #888; margin-top: 2px; }
+    .welcome-acceso {
+      margin-top: 8px; font-size: 12.5px; color: #aaa;
+      background: white; padding: 7px 16px;
+      border-radius: 20px; border: 0.5px solid var(--border);
+      transition: color .3s;
+    }
+    .welcome-acceso.warn { color: #c5221f; }
+
+    /* Grid de prototipos (centro de la pantalla) */
+    .proto-grid {
+      max-width: 1020px; margin: 0 auto;
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 16px;
+    }
+    .proto-card {
+      position: relative;
+      background: white; border: 0.5px solid var(--border);
+      border-radius: 14px; padding: 18px;
+      display: flex; flex-direction: column; gap: 10px;
+      text-align: left; cursor: pointer; user-select: none;
+      transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    }
+    .proto-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 26px rgba(0,0,0,.08);
+      border-color: #ddd;
+    }
+    .proto-card.locked { cursor: not-allowed; opacity: .55; }
+    .proto-card.locked:hover { transform: none; box-shadow: none; border-color: var(--border); }
+    .proto-icon {
+      width: 42px; height: 42px; border-radius: 10px;
+      background: #fef2f3; color: var(--rvc);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; flex-shrink: 0;
+    }
+    .proto-name { font-size: 14.5px; font-weight: 600; color: #222; line-height: 1.3; }
+    .proto-ver {
+      display: inline-block; font-size: 10.5px; font-weight: 600;
+      color: #888; background: #f3f2ef; padding: 2px 8px;
+      border-radius: 10px; width: fit-content;
+    }
+    .proto-open {
+      margin-top: auto; font-size: 12px; font-weight: 600;
+      color: var(--rvc); display: flex; align-items: center; gap: 4px;
+    }
+    .proto-card.locked .proto-open { color: #999; }
+    .proto-lock-badge {
+      position: absolute; top: 14px; right: 14px; font-size: 13px;
+    }
+    .proto-empty {
+      max-width: 420px; margin: 0 auto; text-align: center;
+      color: #bbb; font-size: 13px; padding: 2rem;
+      background: white; border: 0.5px dashed var(--border); border-radius: 14px;
+    }
+
+    /* Iframe */
+    #module-frame {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%; border: none;
+      background: white; display: none; z-index: 1;
+    }
+
+    /* Loading spinner */
+    #loader {
+      position: absolute; inset: 0;
+      display: none; align-items: center; justify-content: center;
+      background: var(--bg); z-index: 2;
+    }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid #e0ddd8;
+      border-top-color: var(--rvc);
+      border-radius: 50%;
+      animation: spin .75s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Responsive mobile ───────────────────────────────────── */
+    @media (max-width: 768px) {
+      .top-title, .usr-nombre, .conexion { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── Top bar ── -->
+  <header class="top-bar">
+    <div class="top-left">
+      <button class="top-home" onclick="irInicio()" title="Ir a Inicio">
+        <img src="assets/logo.png" alt="RVC" class="top-logo"
+             onerror="this.style.display='none';document.getElementById('logo-fb').style.display='inline'">
+        <span id="logo-fb" style="display:none" class="top-logo-text">RVC</span>
+      </button>
+      <span class="top-title">Sistema Corporativo RVC</span>
+    </div>
+    <div class="top-right">
+      <div class="conexion">
+        <span class="dot" id="dot"></span>
+        <span id="txt-con">Conectado</span>
+      </div>
+
+      <div class="gear-btn" onclick="toggleGear(event)" title="Módulos y administración">⚙</div>
+      <div class="gear-dropdown" id="gear-dropdown" onclick="event.stopPropagation()">
+        <div class="gear-scroll">
+          <div id="sidebar-modules">
+            <div style="padding:20px 16px;font-size:12px;color:#ccc">Cargando…</div>
+          </div>
+        </div>
+        <!-- Admin link (hidden unless esAdmin) -->
+        <div class="sidebar-footer" id="sidebar-footer" style="display:none">
+          <a href="admin.html" class="module-item admin-item" title="Panel Admin">
+            <span class="mod-icon">🛡</span>
+            <span class="mod-name">Panel Admin</span>
+            <span class="mod-arrow">›</span>
+          </a>
+        </div>
+        <div style="text-align:center;padding:6px 0 10px;font-size:11px;color:#999">Versión 1.0</div>
+      </div>
+
+      <div class="account-btn" onclick="toggleDropdown(event)" title="Ver cuenta">
+        <span class="usr-nombre" id="usr-nombre"></span>
+        <div class="avatar" id="avatar">?</div>
+      </div>
+
+      <!-- Dropdown cuenta -->
+      <div class="account-dropdown" id="account-dropdown">
+        <div class="acct-head">
+          <div class="acct-avatar-big" id="acct-avatar-big">?</div>
+          <div class="acct-nombre" id="acct-nombre"></div>
+          <div class="acct-email"  id="acct-email"></div>
+        </div>
+        <div class="acct-info">
+          <div class="acct-row">📅 <span>Cuenta Microsoft 365</span></div>
+          <div class="acct-row">🏢 <span id="acct-empresa">RVC</span></div>
+        </div>
+        <div class="acct-foot">
+          <button class="btn-signout" onclick="salir()">Cerrar sesión</button>
+        </div>
+      </div>
+
+      <button class="btn-salir" onclick="salir()">Salir</button>
+    </div>
+  </header>
+
+  <!-- ── Body ── -->
+  <div class="body-wrap">
+    <!-- Content area -->
+    <div class="content-area">
+
+      <!-- Welcome screen (home): saludo + grid de prototipos -->
+      <div class="welcome" id="welcome">
+        <div class="welcome-head">
+          <img src="assets/logo.png" alt="RVC" class="welcome-logo"
+               onerror="this.style.display='none';document.getElementById('wlc-fb').style.display='block'">
+          <div id="wlc-fb" class="welcome-logo-text" style="display:none">RVC</div>
+          <h2 class="welcome-title">Bienvenido, <span id="welcome-nombre"></span></h2>
+          <p class="welcome-sub">Elige un prototipo para abrirlo en una pestaña nueva</p>
+          <p class="welcome-acceso" id="welcome-acceso">Cargando prototipos…</p>
+        </div>
+        <div class="proto-grid" id="proto-grid"></div>
+      </div>
+
+      <!-- Loading spinner (shown while iframe loads) -->
+      <div id="loader"><div class="spinner"></div></div>
+
+      <!-- Module iframe -->
+      <iframe id="module-frame" title="Módulo RVC"></iframe>
+
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { auth, db } from './core/firebase-config.js';
+  import { signOut, onAuthStateChanged }
+    from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
+  import {
+    collection, doc, getDoc, getDocs, setDoc,
+    query, where, orderBy, serverTimestamp
+  } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
+
+  // ── Constantes ──────────────────────────────────────────────
+  const LAST_KEY      = 'rvc_last_module';
+  const GROUP_ORDER   = ['Gestión de obras','Gestión financiera','Gestión de personas','Gestión legal'];
+
+  // ── Estado ──────────────────────────────────────────────────
+  let modulosData      = [];
+  let permisosMap      = {};
+  let prototiposData   = [];
+  let activeModuloId   = null;
+
+  // ── Auth guard ──────────────────────────────────────────────
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) { window.location.href = 'index.html'; return; }
+    await iniciar(user);
+  });
+
+  async function iniciar(user) {
+    const nombre = user.displayName || user.email.split('@')[0];
+    document.getElementById('usr-nombre').textContent         = nombre;
+    document.getElementById('avatar').textContent             = iniciales(nombre);
+    document.getElementById('welcome-nombre').textContent     = nombre.split(' ')[0];
+    document.getElementById('acct-avatar-big').textContent    = iniciales(nombre);
+    document.getElementById('acct-nombre').textContent        = nombre;
+    document.getElementById('acct-email').textContent         = user.email;
+    document.getElementById('acct-empresa').textContent       =
+      (user.email.split('@')[1]?.split('.')[0] || 'rvc').toUpperCase();
+
+    try {
+      // ── Crear / recuperar doc de usuario, con ID = su email ──
+      // (así el admin lo invita sin conocer su futuro UID de Auth,
+      // y las reglas de Firestore pueden resolverlo con
+      // request.auth.token.email sin necesitar una query).
+      const userId  = user.email.toLowerCase();
+      const userRef = doc(db, 'usuarios', userId);
+      let   userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists()) {
+        const adminCheck = await getDocs(
+          query(collection(db, 'usuarios'), where('esAdmin', '==', true))
+        );
+        await setDoc(userRef, {
+          email: user.email, nombre,
+          activo: true, esAdmin: adminCheck.empty,
+          creadoEn: serverTimestamp()
+        });
+        userSnap = await getDoc(userRef);
+      }
+
+      const userData = userSnap.data() || {};
+      if (userData.esAdmin) {
+        document.getElementById('sidebar-footer').style.display = 'block';
+      }
+
+      // ── Cargar módulos + permisos + prototipos ───────────
+      const [modulosSnap, permisosSnap, prototiposSnap] = await Promise.all([
+        getDocs(query(collection(db, 'modulos'), where('activo', '==', true))),
+        getDocs(query(collection(db, 'permisos'), where('usuarioId', '==', userId))),
+        getDocs(query(collection(db, 'prototipos'), orderBy('nombre')))
+      ]);
+
+      permisosSnap.forEach(d => { permisosMap[d.data().moduloId] = d.data(); });
+      modulosData    = modulosSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      prototiposData = prototiposSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      const conAcceso = prototiposData.filter(p => permisosMap[p.id]?.puede_ver).length;
+      const wlcAcceso = document.getElementById('welcome-acceso');
+
+      if (!prototiposData.length) {
+        wlcAcceso.textContent = userData.esAdmin
+          ? 'Sin prototipos — usa el módulo Prototipos para crearlos'
+          : 'Sin prototipos disponibles';
+      } else {
+        wlcAcceso.textContent = `Acceso a ${conAcceso} de ${prototiposData.length} prototipos`;
+      }
+
+      renderProtoGrid();
+
+      // Leer último módulo antes de renderizar para que la protección de grupo funcione
+      try {
+        const saved = localStorage.getItem(LAST_KEY);
+        if (saved) {
+          const { id } = JSON.parse(saved);
+          if (modulosData.find(x => x.id === id)) activeModuloId = id;
+        }
+      } catch {}
+
+      renderSidebar();
+
+      // Aplicar clase active al último módulo visitado
+      if (activeModuloId) {
+        document.querySelectorAll('.module-item[data-id]').forEach(el =>
+          el.classList.toggle('active', el.dataset.id === activeModuloId)
+        );
+      }
+
+    } catch (e) {
+      console.error('Error al iniciar dashboard:', e);
+      document.getElementById('welcome-acceso').textContent = 'Error: ' + e.message;
+      document.getElementById('sidebar-modules').innerHTML =
+        `<div style="padding:16px;font-size:12px;color:#e57373;line-height:1.5">
+           Error al cargar módulos<br>
+           <button onclick="location.reload()" style="margin-top:8px;padding:5px 12px;
+             background:var(--rvc);color:white;border:none;border-radius:6px;cursor:pointer;font-size:12px">
+             Reintentar
+           </button>
+         </div>`;
+    }
+  }
+
+  // ── Renderizar sidebar (solo módulos internos, no prototipos) ──
+  function renderSidebar() {
+    if (!modulosData.length) {
+      document.getElementById('sidebar-modules').innerHTML =
+        `<div style="padding:20px 16px;font-size:12px;color:#bbb;line-height:1.6">
+           Sin módulos configurados
+         </div>`;
+      return;
+    }
+
+    // Agrupar por categoria
+    const grupos = {};
+    modulosData.forEach(m => {
+      const cat = m.categoria || 'Otros';
+      (grupos[cat] = grupos[cat] || []).push(m);
+    });
+
+    // Ordenar grupos según GROUP_ORDER
+    const entries = Object.entries(grupos).sort(([a], [b]) => {
+      const ia = GROUP_ORDER.indexOf(a), ib = GROUP_ORDER.indexOf(b);
+      return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+    });
+
+    const html = entries.map(([cat, items]) => {
+      const slug = catSlug(cat);
+      return `
+        <div class="module-group" data-slug="${slug}">
+          <div class="group-header" onclick="toggleGrupo('${slug}')">
+            <span class="group-label">${cat}</span>
+            <span class="group-chevron">▾</span>
+          </div>
+          <div class="group-items">
+            ${items.map(m => {
+              const ok  = !!permisosMap[m.id]?.puede_ver;
+              const ind = ok
+                ? `<span class="mod-arrow">›</span>`
+                : `<span class="mod-lock">🔒</span>`;
+              return `
+                <div class="module-item ${ok ? '' : 'locked'}"
+                     data-id="${m.id}" data-group="${slug}"
+                     title="${m.nombre}${ok ? '' : ' — sin acceso'}"
+                     onclick="${ok ? `_load('${m.id}')` : `_locked()`}">
+                  <span class="mod-icon">${m.icono || '📦'}</span>
+                  <span class="mod-name">${m.nombre}</span>
+                  ${ind}
+                </div>`;
+            }).join('')}
+          </div>
+        </div>`;
+    }).join('');
+
+    document.getElementById('sidebar-modules').innerHTML = html;
+
+    // Restaurar estados de colapso desde localStorage
+    entries.map(([cat]) => catSlug(cat)).forEach(slug => {
+      if (localStorage.getItem(`rvc_grp_${slug}`) === '1') {
+        const hasActive = !!document.querySelector(
+          `.module-item[data-group="${slug}"][data-id="${activeModuloId}"]`
+        );
+        if (!hasActive) {
+          document.querySelector(`.module-group[data-slug="${slug}"]`)?.classList.add('collapsed');
+        }
+      }
+    });
+  }
+
+  // ── Cargar módulo en iframe ──────────────────────────────────
+  function loadModulo(id, url) {
+    activeModuloId = id;
+
+    // Marcar activo en sidebar
+    document.querySelectorAll('.module-item[data-id]').forEach(el =>
+      el.classList.toggle('active', el.dataset.id === id)
+    );
+
+    const frame   = document.getElementById('module-frame');
+    const welcome = document.getElementById('welcome');
+    const loader  = document.getElementById('loader');
+
+    // Evitar recargar si ya está activo
+    const resolvedUrl = new URL(url, location.href).href;
+    if (frame.src === resolvedUrl && frame.style.display === 'block') return;
+
+    welcome.style.display = 'none';
+    loader.style.display  = 'flex';
+    frame.style.display   = 'none';
+
+    frame.onload = () => {
+      loader.style.display  = 'none';
+      frame.style.display   = 'block';
+    };
+    frame.onerror = () => {
+      loader.style.display = 'none';
+      frame.style.display  = 'block';
+    };
+
+    frame.src = url;
+    localStorage.setItem(LAST_KEY, JSON.stringify({ id, url }));
+
+    closeGear();
+  }
+
+  // Expuestos para onclick inline
+  window._load = (id) => {
+    const m = modulosData.find(x => x.id === id);
+    if (m?.url) loadModulo(id, m.url);
+  };
+  window._locked = () => {
+    const el = document.getElementById('welcome-acceso');
+    const wasVisible = document.getElementById('welcome').style.display !== 'none';
+    if (!wasVisible) return;
+    const prev = el.textContent;
+    el.textContent = '⚠ Sin acceso a este módulo';
+    el.classList.add('warn');
+    setTimeout(() => { el.textContent = prev; el.classList.remove('warn'); }, 2000);
+  };
+
+  // ── Grid de prototipos (home, centro de la pantalla) ──────────
+  // Ya no se cargan en iframe: cada uno abre en pestaña nueva.
+  function renderProtoGrid() {
+    const grid = document.getElementById('proto-grid');
+    if (!prototiposData.length) {
+      grid.innerHTML = `<div class="proto-empty">Todavía no hay prototipos publicados.</div>`;
+      return;
+    }
+
+    grid.innerHTML = prototiposData.map(p => {
+      const ok = !!permisosMap[p.id]?.puede_ver;
+      return `
+        <div class="proto-card ${ok ? '' : 'locked'}"
+             title="${p.nombre}${ok ? '' : ' — sin acceso'}"
+             onclick="${ok ? `_openProto('${p.id}')` : `_locked()`}">
+          ${ok ? '' : '<span class="proto-lock-badge">🔒</span>'}
+          <div class="proto-icon">🧩</div>
+          <div class="proto-name">${p.nombre}</div>
+          ${p.version ? `<span class="proto-ver">v${p.version}</span>` : ''}
+          <span class="proto-open">${ok ? 'Abrir ↗' : 'Sin acceso'}</span>
+        </div>`;
+    }).join('');
+  }
+
+  window._openProto = (id) => {
+    const p = prototiposData.find(x => x.id === id);
+    if (p?.url) window.open(p.url, '_blank', 'noopener,noreferrer');
+  };
+
+  // ── Volver a Inicio (oculta el iframe de módulo activo) ────────
+  window.irInicio = () => {
+    activeModuloId = null;
+    document.getElementById('module-frame').style.display = 'none';
+    document.getElementById('loader').style.display = 'none';
+    document.getElementById('welcome').style.display = 'block';
+    document.querySelectorAll('.module-item[data-id]').forEach(el =>
+      el.classList.remove('active')
+    );
+  };
+
+  // ── Grupos colapsables ───────────────────────────────────────
+  function catSlug(s) {
+    const map = {'á':'a','é':'e','í':'i','ó':'o','ú':'u','ñ':'n','ü':'u'};
+    return s.toLowerCase().replace(/[áéíóúñü]/g, c => map[c] || c)
+            .replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+  }
+
+  window.toggleGrupo = (slug) => {
+    const grp = document.querySelector(`.module-group[data-slug="${slug}"]`);
+    if (!grp) return;
+    // No colapsar si el módulo activo pertenece a este grupo
+    if (!grp.classList.contains('collapsed') &&
+        grp.querySelector(`.module-item[data-id="${activeModuloId}"]`)) return;
+    const collapsed = grp.classList.toggle('collapsed');
+    localStorage.setItem(`rvc_grp_${slug}`, collapsed ? '1' : '0');
+  };
+
+  // ── Gear dropdown (módulos + admin) ───────────────────────────
+  window.toggleGear = (e) => {
+    e.stopPropagation();
+    document.getElementById('account-dropdown')?.classList.remove('open');
+    document.getElementById('gear-dropdown').classList.toggle('open');
+  };
+  function closeGear() {
+    document.getElementById('gear-dropdown')?.classList.remove('open');
+  }
+
+  // ── Indicador de conexión ────────────────────────────────────
+  window.addEventListener('online',  () => _setConn(true));
+  window.addEventListener('offline', () => _setConn(false));
+  function _setConn(ok) {
+    document.getElementById('dot').className       = 'dot' + (ok ? '' : ' off');
+    document.getElementById('txt-con').textContent = ok ? 'Conectado' : 'Sin conexión';
+  }
+
+  window.salir = () =>
+    signOut(auth).then(() => { window.location.href = 'index.html'; });
+
+  window.toggleDropdown = (e) => {
+    e.stopPropagation();
+    closeGear();
+    document.getElementById('account-dropdown').classList.toggle('open');
+  };
+  document.addEventListener('click', () => {
+    document.getElementById('account-dropdown')?.classList.remove('open');
+    closeGear();
+  });
+
+  function iniciales(s) {
+    const p = s.trim().split(/\s+/);
+    return p.length >= 2 ? (p[0][0]+p[1][0]).toUpperCase() : s.slice(0,2).toUpperCase();
+  }
+
+  // Mensajería con módulos embebidos (mismo origen)
+  window.addEventListener('message', (e) => {
+    if (e.origin !== location.origin) return;
+
+    if (e.data?.type === 'AUTH_REQUIRED') {
+      // Módulo iframe reporta que no tiene sesión — redirigir al login
+      window.location.href = 'index.html';
+    }
+
+    if (e.data?.type === 'REQUEST_AUTH') {
+      // Módulo iframe agotó su timeout de onAuthStateChanged — responder con estado
+      const hasUser = !!auth.currentUser;
+      console.log('[portal] REQUEST_AUTH desde iframe | hasUser:', hasUser,
+                  '| user:', auth.currentUser?.email ?? null);
+      e.source.postMessage({ type: 'AUTH_REPLY', hasUser }, location.origin);
+    }
+
+    if (e.data?.type === 'GO_HOME') {
+      irInicio();
+    }
+
+    if (e.data?.type === 'NAVIGATE') {
+      const url = e.data.url;
+      if (url && url.startsWith('/')) loadModulo(activeModuloId, url);
+    }
+  });
+</script>
+</body>
+</html>

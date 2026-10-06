@@ -1,0 +1,64 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Función helper: verificar si es admin
+    // El doc de usuario vive en usuarios/{email} — así el admin puede
+    // invitar y asignar permisos sin conocer el futuro UID de Auth.
+    function isAdmin() {
+      return request.auth != null &&
+             get(/databases/$(database)/documents/usuarios/$(request.auth.token.email)).data.esAdmin == true;
+    }
+
+    // Función helper: verificar si está autenticado
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // Función helper: obtener el permiso del usuario sobre un modulo
+    function permiso(moduloId) {
+      return get(/databases/$(database)/documents/permisos/$(request.auth.token.email + '_' + moduloId)).data;
+    }
+
+    // Colección usuarios
+    match /usuarios/{userId} {
+      allow read: if isAuth();
+      allow create: if isAuth() && (request.auth.token.email == userId || isAdmin());
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Colección modulos
+    match /modulos/{moduloId} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // Colección permisos
+    match /permisos/{permisoId} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // Colección proveedores (modulo "proveedores")
+    match /proveedores/{provId} {
+      allow read: if isAuth() && permiso('proveedores').puede_ver == true;
+      allow create, update: if isAuth() && permiso('proveedores').puede_grabar == true;
+      allow delete: if isAuth() && permiso('proveedores').puede_eliminar == true;
+    }
+
+    // Colección prototipos (modulo "prototipos")
+    // ponytail: el filtro por prototipo puntual (permisos/{uid}_{prototipoId})
+    // se aplica en el cliente (dashboard.html), igual que "modulos" hoy.
+    // No se valida aquí porque una regla por-documento sobre una query sin
+    // filtro de ID rompe la lectura completa para cualquiera al que le falte
+    // UN permiso (ver "Query data with security rules" de Firestore).
+    // Subir de nivel: consultar por lista de IDs permitidos con
+    // where(documentId(), 'in', [...]) y sí exigir permiso(prototipoId) aquí.
+    match /prototipos/{prototipoId} {
+      allow read: if isAuth() && permiso('prototipos').puede_ver == true;
+      allow create, update: if isAuth() && permiso('prototipos').puede_grabar == true;
+      allow delete: if isAuth() && permiso('prototipos').puede_eliminar == true;
+    }
+  }
+}

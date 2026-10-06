@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login - Prototipos RVC</title>
+<style>
+  :root {
+    --rvc: #c9564f;
+    --rvc-dark: #a8433d;
+    --ms-blue: #0078d4;
+    --ms-blue-dark: #006cbd;
+    --bg: #fbeeec;
+    --border: #f0dcda;
+    --text: #1a1a1a;
+    --muted: #888;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: var(--text);
+  }
+
+  .caja {
+    background: white;
+    padding: 2.25rem 2rem;
+    border-radius: 14px;
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--border);
+    width: 340px;
+    text-align: center;
+  }
+
+  .logo { height: 44px; width: auto; object-fit: contain; margin: 0 auto 16px; display: block; }
+
+  h1 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 4px 0 6px;
+  }
+
+  .subtitulo {
+    color: var(--muted);
+    font-size: 13.5px;
+    margin: 0 0 22px;
+    line-height: 1.4;
+  }
+
+  .btn-microsoft {
+    width: 100%;
+    padding: 12px;
+    background: var(--ms-blue);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14.5px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: background 0.15s ease;
+  }
+
+  .btn-microsoft:hover:not(:disabled) { background: var(--ms-blue-dark); }
+  .btn-microsoft:disabled { opacity: 0.65; cursor: default; }
+
+  .btn-microsoft svg { flex-shrink: 0; }
+
+  .spinner {
+    width: 15px;
+    height: 15px;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: girar 0.7s linear infinite;
+  }
+
+  @keyframes girar { to { transform: rotate(360deg); } }
+
+  .mensaje {
+    margin-top: 14px;
+    font-size: 13px;
+    line-height: 1.4;
+    min-height: 18px;
+  }
+
+  .mensaje.error { color: #c5221f; }
+  .mensaje.exito { color: #1e8e3e; }
+
+  .pie {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 11.5px;
+    color: #bbb;
+  }
+</style>
+</head>
+<body>
+
+  <div class="caja">
+    <img src="assets/logo.png" alt="RVC" class="logo">
+    <h1>Prototipos Seguros RVC</h1>
+    <p style="margin:8px 0 4px;font-size:11px;font-weight:700;letter-spacing:0.6px;color:var(--rvc);text-transform:uppercase;">Etapa 1</p>
+    <p class="subtitulo">Inicia sesión con tu cuenta corporativa Microsoft</p>
+
+    <button class="btn-microsoft" id="loginBtn">
+      <svg width="18" height="18" viewBox="0 0 21 21" aria-hidden="true">
+        <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+        <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+        <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+        <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+      </svg>
+      <span id="loginBtnTexto">Iniciar sesión con Microsoft</span>
+    </button>
+
+    <p class="mensaje" id="mensaje"></p>
+
+    <p class="pie">rvc-prototipos · Fase 1 · autenticación vía Microsoft Entra ID</p>
+  </div>
+
+  <script type="module">
+    import { auth } from "./core/firebase-config.js";
+    import { OAuthProvider, signInWithPopup, onAuthStateChanged }
+      from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+
+    const btn      = document.getElementById("loginBtn");
+    const btnTexto = document.getElementById("loginBtnTexto");
+    const mensaje  = document.getElementById("mensaje");
+
+    // Si ya tiene sesión activa, va directo al dashboard
+    onAuthStateChanged(auth, (user) => {
+      if (user) window.location.href = "dashboard.html";
+    });
+
+    function setCargando(cargando) {
+      btn.disabled = cargando;
+      if (cargando) {
+        btnTexto.textContent = "";
+        btn.insertAdjacentHTML("beforeend", '<span class="spinner" id="spinner"></span>');
+      } else {
+        document.getElementById("spinner")?.remove();
+        btnTexto.textContent = "Iniciar sesión con Microsoft";
+      }
+    }
+
+    function setMensaje(texto, tipo) {
+      mensaje.textContent = texto;
+      mensaje.className = "mensaje" + (tipo ? " " + tipo : "");
+    }
+
+    btn.addEventListener("click", async () => {
+      setCargando(true);
+      setMensaje("", "");
+
+      const provider = new OAuthProvider('oidc.microsoft');
+      // Solo acepta cuentas del tenant de RVC
+      provider.setCustomParameters({
+        tenant: 'e4553afa-e547-4aa5-87b3-163113ff166b'
+      });
+
+      try {
+        await signInWithPopup(auth, provider);
+        window.location.href = "dashboard.html";
+      } catch (e) {
+        console.error('Error de login:', e);
+        setMensaje("No se pudo iniciar sesión. Verifica que uses tu cuenta @rvc.cl", "error");
+        setCargando(false);
+      }
+    });
+  </script>
+</body>
+</html>

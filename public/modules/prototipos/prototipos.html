@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prototipos - RVC</title>
+  <link rel="stylesheet" href="../../assets/shared.css">
+</head>
+<body>
+  <header class="header">
+    <div class="header-left">
+      <a class="logo" href="../../dashboard.html">RVC</a>
+      <div class="logo-sep"></div>
+      <span class="header-title">Prototipos</span>
+    </div>
+    <div class="header-right">
+      <div class="conexion"><span class="dot" id="dot"></span><span id="txt-con">Conectado</span></div>
+      <div class="avatar" id="avatar"></div>
+      <span class="usr-nombre" id="usr-nombre"></span>
+      <button class="btn-salir" id="btn-salir">Salir</button>
+    </div>
+  </header>
+
+  <main>
+    <button id="btn-volver-menu" class="btn-export" style="margin-bottom:1rem">← Volver al Menú</button>
+    <h1 class="page-title">Prototipos</h1>
+
+    <div class="card" style="margin-bottom:1.4rem;">
+      <div class="card-head"><h3>Nuevo / Editar prototipo</h3></div>
+      <form id="form-prototipo" style="padding:16px;display:grid;gap:10px;max-width:420px;">
+        <input type="hidden" id="prototipo-id">
+        <input type="text" id="nombre" placeholder="Nombre del Prototipo" required maxlength="80">
+        <input type="url" id="url" placeholder="URL del Prototipo (https://...)" required maxlength="300">
+        <input type="text" id="version" placeholder="Versión (ej: 1.0)" maxlength="20">
+        <input type="text" id="repo" placeholder="Dirección Repositorio" maxlength="300">
+        <div style="display:flex;gap:8px;">
+          <button type="submit" class="admin-btn">Guardar</button>
+          <button type="button" id="btn-cancelar" class="btn-export">Cancelar</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>Listado</h3></div>
+      <table id="tabla-prototipos">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Versión</th>
+            <th>Repositorio</th>
+            <th>Acceso</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </main>
+
+  <div id="toast"></div>
+
+  <!-- Modal: usuarios con acceso a un prototipo puntual -->
+  <div id="modal-usuarios-overlay"
+       style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);
+              align-items:center;justify-content:center;z-index:500;padding:1rem"
+       onclick="if(event.target===this) document.getElementById('modal-usuarios-overlay').style.display='none'">
+    <div id="modal-usuarios-box"
+         style="background:white;border-radius:14px;width:100%;max-width:420px;
+                max-height:80vh;display:flex;flex-direction:column;
+                box-shadow:0 20px 60px rgba(0,0,0,.2)"></div>
+  </div>
+
+  <script type="module" src="./js/solicitudServidorPrototipos.js"></script>
+</body>
+</html>

@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administración — RVC</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0eeea;
+      min-height: 100vh;
+    }
+
+    /* ── Header (igual al dashboard) ── */
+    .header {
+      background: #C8102E; color: white;
+      padding: 0 2rem; height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 200;
+      box-shadow: 0 2px 10px rgba(0,0,0,.25);
+    }
+    .header-left  { display: flex; align-items: center; gap: 12px; }
+    .logo         { font-size: 22px; font-weight: 800; letter-spacing: 2px; }
+    .logo-sep     { width: 1px; height: 26px; background: rgba(255,255,255,.3); }
+    .sistema-nom  { font-size: 14px; opacity: .85; }
+    .header-right { display: flex; align-items: center; gap: 14px; }
+    .avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: rgba(255,255,255,.22);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 12px;
+      border: 1.5px solid rgba(255,255,255,.35);
+    }
+    .btn-salir {
+      padding: 6px 14px; background: rgba(255,255,255,.15);
+      color: white; border: 1px solid rgba(255,255,255,.3);
+      border-radius: 7px; font-size: 13px; cursor: pointer;
+    }
+    .btn-salir:hover { background: rgba(255,255,255,.28); }
+    .btn-back {
+      padding: 6px 14px; background: rgba(255,255,255,.12);
+      color: white; border: 1px solid rgba(255,255,255,.25);
+      border-radius: 7px; font-size: 13px; cursor: pointer;
+      text-decoration: none;
+    }
+    .btn-back:hover { background: rgba(255,255,255,.22); }
+
+    /* ── Tabs ── */
+    .tabs-bar {
+      background: white;
+      border-bottom: 1px solid #e8e6e2;
+      padding: 0 2rem;
+      display: flex; gap: 0;
+    }
+    .tab {
+      padding: 14px 20px; font-size: 14px; font-weight: 500;
+      color: #888; cursor: pointer; border-bottom: 2px solid transparent;
+      transition: color .15s, border-color .15s; white-space: nowrap;
+    }
+    .tab:hover    { color: #444; }
+    .tab.active   { color: #C8102E; border-bottom-color: #C8102E; }
+
+    /* ── Main ── */
+    main { max-width: 1100px; margin: 0 auto; padding: 2rem; }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ── Section header ── */
+    .sec-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 1.2rem;
+    }
+    .sec-title { font-size: 18px; font-weight: 600; color: #1a1a1a; }
+    .btn-primary {
+      padding: 8px 18px; background: #C8102E; color: white;
+      border: none; border-radius: 8px; font-size: 13px;
+      cursor: pointer; transition: background .15s;
+    }
+    .btn-primary:hover { background: #a50d25; }
+    .btn-sm {
+      padding: 5px 11px; font-size: 12px; border-radius: 6px;
+      border: none; cursor: pointer; transition: background .15s;
+    }
+    .btn-edit   { background: #e8f0fe; color: #1a73e8; }
+    .btn-edit:hover   { background: #d2e3fc; }
+    .btn-delete { background: #fce8e6; color: #c5221f; }
+    .btn-delete:hover { background: #f5c6c3; }
+
+    /* ── Card wrapper ── */
+    .card {
+      background: white; border: 0.5px solid rgba(0,0,0,.1);
+      border-radius: 12px; overflow: hidden;
+    }
+
+    /* ── Table ── */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th {
+      background: #f8f7f5; text-align: left;
+      padding: 11px 14px; font-weight: 600; color: #555;
+      border-bottom: 1px solid #eee;
+    }
+    td {
+      padding: 11px 14px; border-bottom: 1px solid #f0eee8;
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fdfcfa; }
+
+    .mod-icono-cell {
+      width: 36px; height: 36px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+    }
+    .color-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+    /* ── Toggle switch ── */
+    .toggle { position: relative; display: inline-block; width: 38px; height: 21px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: #d0ccc8; border-radius: 21px; transition: .25s;
+    }
+    .slider::before {
+      content: ""; position: absolute;
+      width: 15px; height: 15px; left: 3px; bottom: 3px;
+      background: white; border-radius: 50%; transition: .25s;
+    }
+    input:checked + .slider { background: #C8102E; }
+    input:checked + .slider::before { transform: translateX(17px); }
+
+    /* ── Permisos matrix ── */
+    .permisos-header {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 1.4rem;
+      flex-wrap: wrap;
+    }
+    .permisos-header label { font-size: 13px; font-weight: 500; color: #555; }
+    .permisos-header select {
+      padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px;
+      font-size: 13px; background: white; min-width: 220px;
+    }
+    .perm-row {
+      display: flex; align-items: center; padding: 12px 16px;
+      border-bottom: 1px solid #f0eee8; gap: 12px;
+    }
+    .perm-row:last-child { border-bottom: none; }
+    .perm-icono { font-size: 20px; width: 32px; text-align: center; }
+    .perm-nombre { flex: 1; font-size: 13px; font-weight: 500; }
+    .perm-checks { display: flex; gap: 20px; }
+    .perm-check  { display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: 11px; color: #888; }
+    .perm-check input[type="checkbox"] {
+      width: 16px; height: 16px; cursor: pointer; accent-color: #C8102E;
+    }
+
+    /* ── Datos / Seed tab ── */
+    .seed-card {
+      background: white; border: 0.5px solid rgba(0,0,0,.1);
+      border-radius: 12px; padding: 24px; margin-bottom: 16px;
+    }
+    .seed-card h3 { margin: 0 0 6px; font-size: 15px; color: #1a1a1a; }
+    .seed-card p  { font-size: 13px; color: #888; margin: 0 0 14px; }
+    .seed-list { font-size: 12px; color: #666; margin: 0 0 14px; padding-left: 18px; }
+    .seed-list li { margin-bottom: 3px; }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.45);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 500; padding: 1rem;
+    }
+    .modal {
+      background: white; border-radius: 14px; width: 100%;
+      max-width: 460px; box-shadow: 0 20px 60px rgba(0,0,0,.2);
+      animation: slideUp .2s ease;
+      max-height: 90vh; display: flex; flex-direction: column;
+    }
+    @keyframes slideUp { from{transform:translateY(20px);opacity:0} to{transform:none;opacity:1} }
+    .modal-head {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 18px 22px 14px; border-bottom: 1px solid #eee;
+    }
+    .modal-head h3 { margin: 0; font-size: 16px; }
+    .modal-close {
+      width: 28px; height: 28px; border-radius: 50%; border: none;
+      background: #f1f1f1; font-size: 18px; cursor: pointer; line-height: 1;
+    }
+    .modal-body { padding: 18px 22px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group label { font-size: 12px; font-weight: 600; color: #555; }
+    /* ── Status badges ── */
+    .badge {
+      display: inline-block; padding: 3px 10px;
+      border-radius: 20px; font-size: 11px; font-weight: 600;
+    }
+    .badge-green  { background: #e6f4ea; color: #137333; }
+    .badge-yellow { background: #fef9e7; color: #856404; }
+    .badge-gray   { background: #f1f1f1; color: #6c757d; }
+    .badge-ver    { display: inline-block; padding: 2px 8px; background: #e8f0fe;
+                    color: #1a73e8; border-radius: 12px; font-size: 11px;
+                    font-weight: 600; font-family: monospace; }
+
+    .form-group input[type="text"],
+    .form-group input[type="email"],
+    .form-group input[type="url"],
+    .form-group textarea {
+      padding: 9px 12px; border: 1px solid #ddd; border-radius: 8px;
+      font-size: 13px; font-family: inherit; transition: border-color .15s;
+    }
+    .form-group input:focus,
+    .form-group textarea:focus { outline: none; border-color: #C8102E; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-group input[type="color"] {
+      width: 100%; height: 38px; border: 1px solid #ddd;
+      border-radius: 8px; cursor: pointer; padding: 3px 6px;
+    }
+    .form-inline { display: flex; align-items: center; justify-content: space-between; }
+    .modal-foot {
+      padding: 14px 22px 18px; display: flex; justify-content: flex-end; gap: 8px;
+      border-top: 1px solid #eee;
+    }
+    .btn-cancel {
+      padding: 8px 18px; background: #f1f1f1; border: none;
+      border-radius: 8px; font-size: 13px; cursor: pointer;
+    }
+    .btn-cancel:hover { background: #e4e4e4; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #1a1a2e; color: white; padding: 10px 20px;
+      border-radius: 8px; font-size: 13px; pointer-events: none;
+      transition: transform .3s; z-index: 999;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ── Empty table ── */
+    .empty-row td { text-align: center; padding: 3rem; color: #bbb; font-size: 13px; }
+
+    @media (max-width: 640px) {
+      main { padding: 1rem; }
+      .header { padding: 0 1rem; }
+      .sistema-nom { display: none; }
+      .tabs-bar { padding: 0 1rem; overflow-x: auto; }
+      .perm-checks { gap: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <span class="logo">RVC</span>
+    <div class="logo-sep"></div>
+    <span class="sistema-nom">Administración</span>
+  </div>
+  <div class="header-right">
+    <a href="dashboard.html" class="btn-back">← Menú</a>
+    <div class="avatar" id="avatar">?</div>
+    <button class="btn-salir" onclick="salir()">Salir</button>
+  </div>
+</header>
+
+<nav class="tabs-bar">
+  <div class="tab active" data-panel="pan-modulos"   onclick="cambiarTab(this)">Módulos</div>
+  <div class="tab"        data-panel="pan-usuarios"  onclick="cambiarTab(this)">Usuarios</div>
+  <div class="tab"        data-panel="pan-permisos"  onclick="cambiarTab(this)">Permisos</div>
+</nav>
+
+<main>
+
+  <!-- ── MÓDULOS ── -->
+  <div class="panel active" id="pan-modulos">
+    <div class="sec-header">
+      <span class="sec-title">Módulos del sistema</span>
+      <button class="btn-primary" onclick="abrirModalModulo()">+ Agregar módulo</button>
+    </div>
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:48px"></th>
+            <th>Nombre</th>
+            <th class="hide-sm">Descripción</th>
+            <th style="width:130px">Versión</th>
+            <th style="width:70px">Activo</th>
+            <th style="width:100px"></th>
+          </tr>
+        </thead>
+        <tbody id="tabla-modulos">
+          <tr class="empty-row"><td colspan="5">Cargando…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── USUARIOS ── -->
+  <div class="panel" id="pan-usuarios">
+    <div class="sec-header">
+      <span class="sec-title">Usuarios registrados</span>
+      <button class="btn-primary" onclick="abrirModalUsuario()">+ Agregar usuario</button>
+    </div>
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Email</th>
+            <th style="width:80px">Admin</th>
+            <th style="width:80px">Activo</th>
+          </tr>
+        </thead>
+        <tbody id="tabla-usuarios">
+          <tr class="empty-row"><td colspan="5">Cargando…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── PERMISOS ── -->
+  <div class="panel" id="pan-permisos">
+    <div class="permisos-header">
+      <label>Usuario:</label>
+      <select id="sel-usuario" onchange="cargarPermisosUsuario()">
+        <option value="">— seleccionar —</option>
+      </select>
+    </div>
+    <div class="card" id="perm-modulos-lista">
+      <div style="padding:3rem; text-align:center; color:#bbb; font-size:13px">
+        Selecciona un usuario para gestionar sus permisos
+      </div>
+    </div>
+
+    <div id="perm-prototipos-wrap" style="display:none;margin-top:1.4rem">
+      <div class="sec-title" style="font-size:15px;margin-bottom:.8rem">Prototipos visibles para este usuario</div>
+      <div class="card" id="perm-prototipos-lista"></div>
+    </div>
+  </div>
+
+
+</main>
+
+<!-- ── Modal Módulo ── -->
+<div class="modal-overlay" id="modal" style="display:none" onclick="if(event.target===this)cerrarModal()">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="modal-titulo">Agregar módulo</h3>
+      <button class="modal-close" onclick="cerrarModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="mod-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Ícono (emoji)</label>
+          <input type="text" id="mod-icono" placeholder="🏗️" maxlength="4"
+                 style="font-size:22px;text-align:center">
+        </div>
+        <div class="form-group">
+          <label>Color</label>
+          <input type="color" id="mod-color" value="#C8102E">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Nombre del módulo</label>
+        <input type="text" id="mod-nombre" placeholder="Ej: Proyectos">
+      </div>
+      <div class="form-group">
+        <label>Descripción</label>
+        <input type="text" id="mod-desc" placeholder="Descripción breve del módulo">
+      </div>
+      <div class="form-group">
+        <label>URL de destino (relativa o absoluta)</label>
+        <input type="text" id="mod-url" placeholder="/proyectos.html">
+      </div>
+      <div class="form-inline">
+        <label style="font-size:13px;font-weight:500">Módulo activo</label>
+        <label class="toggle">
+          <input type="checkbox" id="mod-activo" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <!-- ── Sección de versiones (solo al editar) ── -->
+      <div id="ver-section" style="display:none">
+        <div style="border-top:1px solid #f0eee8;margin:2px 0 4px"></div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:.5px;
+                    text-transform:uppercase;color:#bbb;margin-bottom:2px">
+          Control de versiones
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Nueva versión</label>
+            <input type="text" id="mod-ver-num" placeholder="ej: 1.1.0" maxlength="20">
+          </div>
+          <div class="form-group">
+            <label>Versión actual</label>
+            <input type="text" id="mod-ver-actual" disabled
+                   style="color:#888;background:#f8f8f8;border-color:#eee">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Nota del cambio</label>
+          <textarea id="mod-ver-nota" rows="2"
+                    placeholder="Describe qué cambió en esta versión…"></textarea>
+        </div>
+        <button class="btn-primary" style="width:100%"
+                onclick="registrarVersion()">Registrar versión</button>
+
+        <div style="margin-top:10px">
+          <div onclick="toggleHistorial()"
+               style="cursor:pointer;display:flex;align-items:center;
+                      justify-content:space-between;padding:8px 0;
+                      border-top:1px solid #f0eee8;user-select:none">
+            <span style="font-size:11px;font-weight:700;letter-spacing:.5px;
+                         text-transform:uppercase;color:#bbb">
+              Historial de versiones
+            </span>
+            <span id="hist-chevron"
+                  style="font-size:9px;color:#ccc;display:inline-block;transition:transform .2s">▾</span>
+          </div>
+          <div id="hist-body"
+               style="overflow:hidden;max-height:0;transition:max-height .3s ease">
+            <div id="hist-content"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn-primary" onclick="guardarModulo()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal Usuario ── -->
+<div class="modal-overlay" id="modal-usuario" style="display:none" onclick="if(event.target===this)cerrarModalUsuario()">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Agregar usuario</h3>
+      <button class="modal-close" onclick="cerrarModalUsuario()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Nombre completo *</label>
+        <input type="text" id="usr-nombre" placeholder="Ej: Juan Pérez">
+      </div>
+      <div class="form-group">
+        <label>Email corporativo * (debe ser @rvc.cl)</label>
+        <input type="email" id="usr-email" placeholder="usuario@rvc.cl">
+      </div>
+      <div class="form-inline">
+        <label style="font-size:13px;font-weight:500">Es administrador</label>
+        <label class="toggle">
+          <input type="checkbox" id="usr-esAdmin">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="form-inline">
+        <label style="font-size:13px;font-weight:500">Usuario activo</label>
+        <label class="toggle">
+          <input type="checkbox" id="usr-activo" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="cerrarModalUsuario()">Cancelar</button>
+      <button class="btn-primary" id="btn-guardar-usr" onclick="guardarUsuario()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+  import { auth, db } from "./core/firebase-config.js";
+  import { signOut, onAuthStateChanged }
+    from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+  import {
+    collection, doc, query, where,
+    getDocs, getDoc, setDoc, updateDoc, deleteDoc,
+    serverTimestamp, arrayUnion
+  } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+  let currentUser = null;
+  let todosModulos = [];
+
+  // Genera un identificador legible y estable a partir del nombre del
+  // modulo (ej. "Proveedores" -> "proveedores", "Gestion de Obras" ->
+  // "gestion-de-obras"). Se usa como ID del documento en Firestore para
+  // que el modulo, su permiso y su carpeta en /modules usen siempre el
+  // mismo identificador, sin depender de un ID autogenerado.
+  function slugify(str) {
+    return str
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
+  let todosUsuarios = [];
+
+  // ── Auth guard ─────────────────────────────────────────────────
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) { window.location.href = "index.html"; return; }
+
+    const userSnap = await getDoc(doc(db, "usuarios", user.email.toLowerCase()));
+    if (!userSnap.exists() || !userSnap.data().esAdmin) {
+      window.location.href = "dashboard.html"; return;
+    }
+
+    currentUser = user;
+    const nombre = user.displayName || user.email.split("@")[0];
+    document.getElementById("avatar").textContent = iniciales(nombre);
+
+    cargarModulos();
+    cargarUsuarios();
+    cargarPrototipos();
+  });
+
+  // ── PROTOTIPOS (solo para la matriz de permisos) ────────────────
+  let todosPrototipos = [];
+  async function cargarPrototipos() {
+    const snap = await getDocs(collection(db, "prototipos"));
+    todosPrototipos = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (a.nombre || "").localeCompare(b.nombre || ""));
+  }
+
+  // ── MÓDULOS ────────────────────────────────────────────────────
+  async function cargarModulos() {
+    const snap = await getDocs(collection(db, "modulos"));
+    todosModulos = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (a.nombre || "").localeCompare(b.nombre || ""));
+    renderTablaModulos();
+  }
+
+  function formatFecha(ts) {
+    if (!ts) return "—";
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    if (isNaN(d.getTime())) return "—";
+    return d.toLocaleDateString("es-CL", {
+      day: "2-digit", month: "2-digit", year: "numeric"
+    }) + " " + d.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
+  }
+
+  function renderTablaModulos() {
+    const tbody = document.getElementById("tabla-modulos");
+    if (!todosModulos.length) {
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="6">Sin módulos — usa la pestaña "Datos de ejemplo" para comenzar</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = todosModulos.map(m => `
+      <tr>
+        <td>
+          <div class="mod-icono-cell" style="background:${m.color}22">
+            <span>${m.icono || "📦"}</span>
+          </div>
+        </td>
+        <td>
+          <div style="font-weight:500">${m.nombre}</div>
+          <div style="font-size:11px;color:#aaa">${m.url || ""}</div>
+        </td>
+        <td class="hide-sm" style="font-size:12px;color:#777">${m.descripcion || ""}</td>
+        <td>
+          ${m.version
+            ? `<span class="badge-ver">v${m.version}</span>
+               <div style="font-size:11px;color:#aaa;margin-top:2px">${formatFecha(m.fechaVersion)}</div>`
+            : `<span style="color:#ccc;font-size:12px">—</span>`}
+        </td>
+        <td>
+          <label class="toggle">
+            <input type="checkbox" ${m.activo ? "checked" : ""}
+              onchange="toggleActivo('modulos','${m.id}',this.checked)">
+            <span class="slider"></span>
+          </label>
+        </td>
+        <td style="display:flex;gap:6px;padding-top:14px">
+          <button class="btn-sm btn-edit"   onclick="editarModulo('${m.id}')">Editar</button>
+          <button class="btn-sm btn-delete" onclick="eliminarModulo('${m.id}','${m.nombre}')">Borrar</button>
+        </td>
+      </tr>`).join("");
+  }
+
+  window.abrirModalModulo = () => {
+    document.getElementById("modal-titulo").textContent = "Agregar módulo";
+    document.getElementById("mod-id").value     = "";
+    document.getElementById("mod-icono").value  = "";
+    document.getElementById("mod-color").value  = "#C8102E";
+    document.getElementById("mod-nombre").value = "";
+    document.getElementById("mod-desc").value   = "";
+    document.getElementById("mod-url").value    = "";
+    document.getElementById("mod-activo").checked = true;
+    document.getElementById("ver-section").style.display = "none";
+    document.getElementById("modal").style.display = "flex";
+  };
+
+  window.editarModulo = (id) => {
+    const m = todosModulos.find(x => x.id === id);
+    if (!m) return;
+    document.getElementById("modal-titulo").textContent = "Editar módulo";
+    document.getElementById("mod-id").value     = id;
+    document.getElementById("mod-icono").value  = m.icono || "";
+    document.getElementById("mod-color").value  = m.color || "#C8102E";
+    document.getElementById("mod-nombre").value = m.nombre || "";
+    document.getElementById("mod-desc").value   = m.descripcion || "";
+    document.getElementById("mod-url").value    = m.url || "";
+    document.getElementById("mod-activo").checked = !!m.activo;
+    // Sección de versiones
+    document.getElementById("ver-section").style.display = "block";
+    document.getElementById("mod-ver-actual").value = m.version || "—";
+    document.getElementById("mod-ver-num").value    = "";
+    document.getElementById("mod-ver-nota").value   = "";
+    const hb = document.getElementById("hist-body");
+    hb.style.maxHeight = "0"; hb._open = false;
+    document.getElementById("hist-chevron").style.transform = "";
+    renderHistorial(m.historialVersiones || []);
+    document.getElementById("modal").style.display = "flex";
+  };
+
+  window.cerrarModal = () => {
+    document.getElementById("modal").style.display = "none";
+  };
+
+  window.guardarModulo = async () => {
+    const id     = document.getElementById("mod-id").value;
+    const nombre = document.getElementById("mod-nombre").value.trim();
+    if (!nombre) { toast("El nombre es obligatorio"); return; }
+
+    const data = {
+      nombre,
+      descripcion: document.getElementById("mod-desc").value.trim(),
+      icono:  document.getElementById("mod-icono").value.trim(),
+      color:  document.getElementById("mod-color").value,
+      url:    document.getElementById("mod-url").value.trim(),
+      activo: document.getElementById("mod-activo").checked,
+    };
+
+    try {
+      if (id) {
+        await updateDoc(doc(db, "modulos", id), data);
+        toast("Módulo actualizado");
+      } else {
+        const slug = slugify(nombre);
+        if (!slug) { toast("El nombre debe tener al menos una letra o número"); return; }
+
+        const nuevoRef  = doc(db, "modulos", slug);
+        const existente = await getDoc(nuevoRef);
+        if (existente.exists()) {
+          toast(`Ya existe un módulo con el identificador "${slug}"`);
+          return;
+        }
+
+        await setDoc(nuevoRef, { ...data, creadoEn: serverTimestamp() });
+        toast("Módulo creado");
+      }
+      cerrarModal();
+      cargarModulos();
+    } catch (e) { toast("Error: " + e.message); }
+  };
+
+  window.eliminarModulo = async (id, nombre) => {
+    if (!confirm(`¿Eliminar el módulo "${nombre}"? Esta acción no se puede deshacer.`)) return;
+    try {
+      await deleteDoc(doc(db, "modulos", id));
+      toast("Módulo eliminado");
+      cargarModulos();
+    } catch (e) { toast("Error: " + e.message); }
+  };
+
+  // ── USUARIOS ───────────────────────────────────────────────────
+  async function cargarUsuarios() {
+    const snap = await getDocs(collection(db, "usuarios"));
+    todosUsuarios = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (a.nombre || "").localeCompare(b.nombre || ""));
+    renderTablaUsuarios();
+    poblarSelectUsuarios();
+  }
+
+  function renderTablaUsuarios() {
+    const tbody = document.getElementById("tabla-usuarios");
+    if (!todosUsuarios.length) {
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="5">Sin usuarios registrados todavía</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = todosUsuarios.map(u => `
+      <tr>
+        <td style="font-weight:500">${u.nombre || "—"}</td>
+        <td style="font-size:12px;color:#777">${u.email || "—"}</td>
+        <td>
+          <label class="toggle">
+            <input type="checkbox" ${u.esAdmin ? "checked" : ""}
+              onchange="toggleActivo('usuarios','${u.id}','esAdmin',this.checked)">
+            <span class="slider"></span>
+          </label>
+        </td>
+        <td>
+          <label class="toggle">
+            <input type="checkbox" ${u.activo ? "checked" : ""}
+              onchange="toggleActivo('usuarios','${u.id}','activo',this.checked)">
+            <span class="slider"></span>
+          </label>
+        </td>
+      </tr>`).join("");
+  }
+
+  window.abrirModalUsuario = () => {
+    document.getElementById("usr-nombre").value  = "";
+    document.getElementById("usr-email").value   = "";
+    document.getElementById("usr-esAdmin").checked = false;
+    document.getElementById("usr-activo").checked  = true;
+    document.getElementById("btn-guardar-usr").disabled = false;
+    document.getElementById("modal-usuario").style.display = "flex";
+    setTimeout(() => document.getElementById("usr-nombre").focus(), 80);
+  };
+
+  window.cerrarModalUsuario = () => {
+    document.getElementById("modal-usuario").style.display = "none";
+  };
+
+  window.guardarUsuario = async () => {
+    const nombre  = document.getElementById("usr-nombre").value.trim();
+    const email   = document.getElementById("usr-email").value.trim().toLowerCase();
+    const esAdmin = document.getElementById("usr-esAdmin").checked;
+    const activo  = document.getElementById("usr-activo").checked;
+
+    if (!nombre) { toast("El nombre es obligatorio"); return; }
+    if (!email)  { toast("El email es obligatorio"); return; }
+    if (!email.endsWith("@rvc.cl")) {
+      toast("El email debe ser una cuenta @rvc.cl"); return;
+    }
+
+    const btn = document.getElementById("btn-guardar-usr");
+    btn.disabled = true;
+
+    try {
+      // El ID del usuario es su email: así el admin lo invita sin
+      // conocer su futuro UID de Auth, y al loguearse llega al mismo
+      // doc sin duplicar (ver firestore.rules, isAdmin()/permiso()).
+      const userRef = doc(db, "usuarios", email);
+      if ((await getDoc(userRef)).exists()) {
+        toast("Ya existe un usuario con ese email");
+        btn.disabled = false;
+        return;
+      }
+
+      await setDoc(userRef, {
+        nombre, email, esAdmin, activo,
+        pendienteActivacion: true,
+        creadoEn:  serverTimestamp(),
+        creadoPor: currentUser.uid,
+      });
+
+      cerrarModalUsuario();
+      cargarUsuarios();
+      toast("Usuario agregado. Podrá acceder al sistema cuando inicie sesión con su cuenta Microsoft 365 por primera vez.");
+    } catch (e) {
+      toast("Error: " + e.message);
+      btn.disabled = false;
+    }
+  };
+
+  // Función unificada para toggles (modulos.activo y usuarios.esAdmin/activo)
+  window.toggleActivo = async (col, id, fieldOrValue, maybeValue) => {
+    // Firma: (col, id, checked) para modulos  |  (col, id, field, value) para usuarios
+    const field = typeof maybeValue === "undefined" ? "activo" : fieldOrValue;
+    const value = typeof maybeValue === "undefined" ? fieldOrValue : maybeValue;
+    try {
+      const updateData = { [field]: value };
+      // Al desactivar módulo, registrar entrada automática en historial
+      if (col === "modulos" && field === "activo" && value === false) {
+        const snap = await getDoc(doc(db, "modulos", id));
+        const data = snap.data() || {};
+        updateData.historialVersiones = arrayUnion({
+          version: data.version || "—",
+          fecha: new Date(),
+          nota: "Módulo desactivado",
+          registradoPor: currentUser?.email || "—"
+        });
+      }
+      await updateDoc(doc(db, col, id), updateData);
+      if (col === "usuarios") cargarUsuarios();
+    } catch (e) { toast("Error: " + e.message); }
+  };
+
+  // ── PERMISOS ───────────────────────────────────────────────────
+  function poblarSelectUsuarios() {
+    const sel = document.getElementById("sel-usuario");
+    const prev = sel.value;
+    sel.innerHTML = `<option value="">— seleccionar —</option>` +
+      todosUsuarios.map(u =>
+        `<option value="${u.id}" ${u.id === prev ? "selected" : ""}>${u.nombre || u.email}</option>`
+      ).join("");
+    if (prev) cargarPermisosUsuario();
+  }
+
+  window.cargarPermisosUsuario = async () => {
+    const uid = document.getElementById("sel-usuario").value;
+    const lista = document.getElementById("perm-modulos-lista");
+    const protoWrap = document.getElementById("perm-prototipos-wrap");
+    const protoLista = document.getElementById("perm-prototipos-lista");
+
+    if (!uid) {
+      lista.innerHTML = `<div style="padding:3rem;text-align:center;color:#bbb;font-size:13px">
+        Selecciona un usuario para gestionar sus permisos</div>`;
+      protoWrap.style.display = "none";
+      return;
+    }
+
+    // Cargar permisos actuales del usuario
+    const snap = await getDocs(
+      query(collection(db, "permisos"), where("usuarioId", "==", uid))
+    );
+    const permisoMap = {};
+    snap.forEach(d => { permisoMap[d.data().moduloId] = d.data(); });
+
+    // ── Prototipos: acceso individual ──
+    if (todosPrototipos.length) {
+      protoWrap.style.display = "block";
+      protoLista.innerHTML = todosPrototipos.map(p => {
+        const pp = permisoMap[p.id] || {};
+        return `
+          <div class="perm-row">
+            <div class="perm-icono">🧩</div>
+            <div class="perm-nombre">${p.nombre}</div>
+            <div class="perm-checks">
+              <label class="perm-check">
+                <input type="checkbox" ${pp.puede_ver ? "checked" : ""}
+                  onchange="guardarPermiso('${uid}','${p.id}','puede_ver',this.checked)">
+                Ver
+              </label>
+            </div>
+          </div>`;
+      }).join("");
+    } else {
+      protoWrap.style.display = "none";
+    }
+
+    // "Prototipos" se gestiona como un módulo más: sin este permiso
+    // general, el usuario no puede leer la colección aunque tenga
+    // prototipos puntuales tildados arriba (ver firestore.rules).
+    const modulosYPrototipos = [
+      {id: "prototipos", nombre: "Prototipos", icono: "🧩"},
+      ...todosModulos,
+    ];
+
+    lista.innerHTML = modulosYPrototipos.map(m => {
+      const p = permisoMap[m.id] || {};
+      return `
+        <div class="perm-row">
+          <div class="perm-icono">${m.icono || "📦"}</div>
+          <div class="perm-nombre">${m.nombre}</div>
+          <div class="perm-checks">
+            <label class="perm-check">
+              <input type="checkbox" ${p.puede_ver ? "checked" : ""}
+                onchange="guardarPermiso('${uid}','${m.id}','puede_ver',this.checked)">
+              Ver
+            </label>
+            <label class="perm-check">
+              <input type="checkbox" ${p.puede_grabar ? "checked" : ""}
+                onchange="guardarPermiso('${uid}','${m.id}','puede_grabar',this.checked)">
+              Grabar
+            </label>
+            <label class="perm-check">
+              <input type="checkbox" ${p.puede_eliminar ? "checked" : ""}
+                onchange="guardarPermiso('${uid}','${m.id}','puede_eliminar',this.checked)">
+              Eliminar
+            </label>
+          </div>
+        </div>`;
+    }).join("");
+  };
+
+  window.guardarPermiso = async (uid, moduloId, campo, valor) => {
+    const docId  = `${uid}_${moduloId}`;
+    const docRef = doc(db, "permisos", docId);
+    const snap   = await getDoc(docRef);
+
+    const base = snap.exists()
+      ? snap.data()
+      : { usuarioId: uid, moduloId, puede_ver: false, puede_grabar: false, puede_eliminar: false };
+
+    await setDoc(docRef, { ...base, [campo]: valor });
+    toast(valor ? "Permiso concedido" : "Permiso revocado");
+  };
+
+  // ── CONTROL DE VERSIONES ──────────────────────────────────────
+  window.registrarVersion = async () => {
+    const id   = document.getElementById("mod-id").value;
+    const ver  = document.getElementById("mod-ver-num").value.trim();
+    const nota = document.getElementById("mod-ver-nota").value.trim();
+    if (!id)  { toast("Abre el módulo desde Editar primero"); return; }
+    if (!ver) { toast("Ingresa un número de versión"); return; }
+
+    const entry = {
+      version: ver,
+      fecha: new Date(),
+      nota: nota || "Sin descripción",
+      registradoPor: currentUser?.email || "—"
+    };
+    try {
+      await updateDoc(doc(db, "modulos", id), {
+        version: ver,
+        fechaVersion: serverTimestamp(),
+        historialVersiones: arrayUnion(entry)
+      });
+      toast(`Versión ${ver} registrada correctamente`);
+      document.getElementById("mod-ver-num").value    = "";
+      document.getElementById("mod-ver-nota").value   = "";
+      document.getElementById("mod-ver-actual").value = ver;
+      // Refrescar historial leyendo el doc actualizado
+      const snap = await getDoc(doc(db, "modulos", id));
+      renderHistorial(snap.data()?.historialVersiones || []);
+      cargarModulos();
+    } catch (e) { toast("Error: " + e.message); }
+  };
+
+  function renderHistorial(historial) {
+    const content = document.getElementById("hist-content");
+    if (!historial || !historial.length) {
+      content.innerHTML = `<p style="font-size:12px;color:#bbb;text-align:center;padding:12px 0">
+        Sin historial de versiones</p>`;
+      return;
+    }
+    const sorted = [...historial].sort((a, b) => {
+      const da = a.fecha?.toDate ? a.fecha.toDate() : new Date(a.fecha);
+      const db_ = b.fecha?.toDate ? b.fecha.toDate() : new Date(b.fecha);
+      return db_ - da;
+    });
+    content.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:4px">
+        <thead>
+          <tr style="border-bottom:1px solid #eee">
+            <th style="text-align:left;padding:5px 6px;color:#888;font-weight:600">Versión</th>
+            <th style="text-align:left;padding:5px 6px;color:#888;font-weight:600">Fecha</th>
+            <th style="text-align:left;padding:5px 6px;color:#888;font-weight:600">Nota</th>
+            <th style="text-align:left;padding:5px 6px;color:#888;font-weight:600">Por</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${sorted.map(h => `
+            <tr style="border-bottom:1px solid #f8f7f5">
+              <td style="padding:5px 6px"><span class="badge-ver">v${h.version}</span></td>
+              <td style="padding:5px 6px;color:#777;white-space:nowrap">${formatFecha(h.fecha)}</td>
+              <td style="padding:5px 6px;color:#555">${h.nota || "—"}</td>
+              <td style="padding:5px 6px;color:#777">${(h.registradoPor || "").split("@")[0]}</td>
+            </tr>`).join("")}
+        </tbody>
+      </table>`;
+  }
+
+  window.toggleHistorial = () => {
+    const body = document.getElementById("hist-body");
+    const chev = document.getElementById("hist-chevron");
+    const open = !body._open;
+    body._open = open;
+    body.style.maxHeight = open ? "300px" : "0";
+    chev.style.transform = open ? "rotate(-90deg)" : "";
+  };
+
+  // ── UI helpers ─────────────────────────────────────────────────
+  window.cambiarTab = (el) => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+    el.classList.add("active");
+    document.getElementById(el.dataset.panel).classList.add("active");
+  };
+
+  window.toast = (msg) => {
+    const t = document.getElementById("toast");
+    t.textContent = msg; t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 2600);
+  };
+
+  function iniciales(str) {
+    const p = str.trim().split(/\s+/);
+    return p.length >= 2
+      ? (p[0][0] + p[1][0]).toUpperCase()
+      : str.substring(0, 2).toUpperCase();
+  }
+
+  window.salir = () =>
+    signOut(auth).then(() => { window.location.href = "index.html"; });
+</script>
+</body>
+</html>
