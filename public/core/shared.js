@@ -61,7 +61,7 @@ export function initPage(moduloId = null) {
 
 // Redirige respetando contexto iframe
 function _redirect(url) {
-  if (IN_IFRAME) { window.top.location.href = '/' + url; }
+    if (IN_IFRAME) { window.top.location.href = new URL(url, window.top.location.href).href; }
   else           { window.location.href = url; }
 }
 
