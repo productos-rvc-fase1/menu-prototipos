@@ -604,6 +604,8 @@
 
   // ── Cargar módulo en iframe ──────────────────────────────────
   function loadModulo(id, url) {
+    // URLs guardadas como "/x.html" → relativas, para funcionar bajo /menu-prototipos/ en GitHub Pages
+    url = url.replace(/^\//, '');
     activeModuloId = id;
 
     // Marcar activo en sidebar
